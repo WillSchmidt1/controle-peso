@@ -218,8 +218,11 @@ datasets:[
 {label:"Peso", data:dados},
 {
 label:"Bebida",
-data:ordenado.map(p=>
-bebidas.some(b=> b.data.split("T")[0]===p.data)?p.peso:null),
+data:ordenado.map(p=>{
+return bebidas.some(b=>{
+return b.data.split("T")[0] === p.data;
+}) ? p.peso : null;
+}),
 pointBackgroundColor:"red",
 showLine:false,
 pointRadius:6
@@ -324,5 +327,6 @@ atualizarTudo();
 
 </body>
 </html>
+
 
 
