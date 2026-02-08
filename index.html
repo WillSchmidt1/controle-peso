@@ -17,12 +17,10 @@ body { background:#121212; color:white; }
     border:none !important;
 }
 .form-control::placeholder, textarea::placeholder { color:#aaa; }
-.nav-tabs .nav-link { color:#aaa; }
-.nav-tabs .nav-link.active { background:#1e1e1e; color:#fff; border:none; }
 .table { color:white; }
-.btn-warning { color:black; }
 canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 .metric-number { font-size:22px; font-weight:bold; }
+.section-title { color:white; }
 </style>
 </head>
 <body>
@@ -72,21 +70,21 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 <div class="tab-pane fade" id="cadastro">
 
 <div class="card p-3 mb-3">
-<h5>Peso</h5>
+<h5 class="section-title">Peso</h5>
 <input type="date" id="pesoData" class="form-control mb-2">
 <input type="number" id="pesoValor" step="0.1" class="form-control mb-2" placeholder="Peso (kg)">
 <button class="btn btn-success w-100" onclick="salvarPeso()">Salvar</button>
 </div>
 
 <div class="card p-3 mb-3">
-<h5>Atividade Física</h5>
+<h5 class="section-title">Atividade Física</h5>
 <input type="date" id="atvData" class="form-control mb-2">
 <textarea id="atvDesc" class="form-control mb-2" placeholder="Descrição"></textarea>
 <button class="btn btn-success w-100" onclick="salvarAtividade()">Salvar</button>
 </div>
 
 <div class="card p-3 mb-3">
-<h5>Bebida Alcoólica</h5>
+<h5 class="section-title">Bebida Alcoólica</h5>
 <input type="datetime-local" id="bebData" class="form-control mb-2">
 <input type="number" id="bebQtd" step="0.01" class="form-control mb-2" placeholder="Quantidade (L)">
 <select id="bebTipo" class="form-select mb-2">
@@ -105,7 +103,7 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 <div class="card p-3 mb-3">
 <h5>Histórico de Pesos</h5>
 <table class="table">
-<thead><tr><th>Data</th><th>Peso</th><th>Ação</th></tr></thead>
+<thead><tr><th>Data</th><th>Peso</th><th>Ações</th></tr></thead>
 <tbody id="listaPesos"></tbody>
 </table>
 </div>
@@ -129,6 +127,8 @@ document.getElementById("atvData").valueAsDate = new Date();
 document.getElementById("bebData").value = new Date().toISOString().slice(0,16);
 if(meta) document.getElementById("metaPeso").value = meta;
 
+let chartPeso, chartBebida, chartAtividade;
+
 function salvarMeta(){
 meta = document.getElementById("metaPeso").value;
 localStorage.setItem("meta", meta);
@@ -145,27 +145,29 @@ atualizarTudo();
 }
 
 function salvarAtividade(){
-atividades.push({
-data: document.getElementById("atvData").value,
-desc: document.getElementById("atvDesc").value
-});
+atividades.push({data: document.getElementById("atvData").value});
 localStorage.setItem("atividades", JSON.stringify(atividades));
+atualizarTudo();
 }
 
 function salvarBebida(){
-bebidas.push({
-data: document.getElementById("bebData").value,
-tipo: document.getElementById("bebTipo").value,
-qtd: document.getElementById("bebQtd").value
-});
+bebidas.push({data: document.getElementById("bebData").value});
 localStorage.setItem("bebidas", JSON.stringify(bebidas));
 atualizarTudo();
 }
 
 function editarPeso(index){
-let novoPeso = prompt("Editar peso:", pesos[index].peso);
-if(novoPeso){
-pesos[index].peso = parseFloat(novoPeso);
+let novo = prompt("Editar peso:", pesos[index].peso);
+if(novo){
+pesos[index].peso = parseFloat(novo);
+localStorage.setItem("pesos", JSON.stringify(pesos));
+atualizarTudo();
+}
+}
+
+function apagarPeso(index){
+if(confirm("Deseja apagar este registro?")){
+pesos.splice(index,1);
 localStorage.setItem("pesos", JSON.stringify(pesos));
 atualizarTudo();
 }
@@ -174,25 +176,34 @@ atualizarTudo();
 function atualizarLista(){
 let lista = document.getElementById("listaPesos");
 lista.innerHTML="";
-pesos.sort((a,b)=> new Date(a.data)-new Date(b.data));
+
+pesos.sort((a,b)=> new Date(a.data) - new Date(b.data));
+
 pesos.forEach((p,i)=>{
 lista.innerHTML += `
 <tr>
 <td>${new Date(p.data).toLocaleDateString()}</td>
 <td>${p.peso} kg</td>
-<td><button class="btn btn-warning btn-sm" onclick="editarPeso(${i})">Editar</button></td>
+<td>
+<button class="btn bg-info btn-sm me-1" onclick="editarPeso(${i})">Editar</button>
+<button class="btn btn-danger btn-sm" onclick="apagarPeso(${i})">Apagar</button>
+</td>
 </tr>`;
 });
 }
 
 function atualizarGraficos(){
 
-let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
-let labels = ordenado.map(p=> new Date(p.data+"T00:00").toLocaleDateString());
+let ordenado = [...pesos].sort((a,b)=> new Date(a.data) - new Date(b.data));
+let labels = ordenado.map(p=> new Date(p.data).toLocaleDateString());
 let dados = ordenado.map(p=> p.peso);
 let linhaMeta = meta ? Array(dados.length).fill(meta) : [];
 
-new Chart(document.getElementById("graficoPeso"),{
+if(chartPeso) chartPeso.destroy();
+if(chartBebida) chartBebida.destroy();
+if(chartAtividade) chartAtividade.destroy();
+
+chartPeso = new Chart(document.getElementById("graficoPeso"),{
 type:"line",
 data:{labels:labels,datasets:[
 {label:"Peso", data:dados},
@@ -200,12 +211,39 @@ data:{labels:labels,datasets:[
 ]}
 });
 
+chartBebida = new Chart(document.getElementById("graficoBebida"),{
+type:"bar",
+data:{
+labels: labels,
+datasets:[{
+label:"Dias com bebida",
+data: labels.map(l=>{
+let iso = ordenado.find(p=> new Date(p.data).toLocaleDateString()===l)?.data;
+return bebidas.some(b=> new Date(b.data).toLocaleDateString()===l)?1:0;
+})
+}]
+}
+});
+
+chartAtividade = new Chart(document.getElementById("graficoAtividade"),{
+type:"bar",
+data:{
+labels: labels,
+datasets:[{
+label:"Dias com atividade",
+data: labels.map(l=>{
+return atividades.some(a=> new Date(a.data).toLocaleDateString()===l)?1:0;
+})
+}]
+}
+});
+
 }
 
 function atualizarTudo(){
 
 if(pesos.length){
-let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
+let ordenado = [...pesos].sort((a,b)=> new Date(a.data) - new Date(b.data));
 let ultimo = ordenado[ordenado.length-1].peso;
 document.getElementById("ultimoPeso").innerText = ultimo+" kg";
 
@@ -217,7 +255,6 @@ document.getElementById("variacaoPeso").innerText = variacao.toFixed(1)+" kg";
 
 document.getElementById("metaDisplay").innerText = meta ? meta+" kg" : "-";
 
-document.getElementById("graficoPeso").replaceWith(document.getElementById("graficoPeso").cloneNode());
 atualizarGraficos();
 atualizarLista();
 }
