@@ -179,7 +179,7 @@ function salvarBebida(){
 bebidas.push({
 data: document.getElementById("bebData").value,
 tipo: document.getElementById("bebTipo").value,
-qtd: document.getElementByById("bebQtd").value
+qtd: document.getElementById("bebQtd").value
 });
 localStorage.setItem("bebidas", JSON.stringify(bebidas));
 document.getElementById("bebQtd").value="";
@@ -324,4 +324,5 @@ atualizarTudo();
 
 </body>
 </html>
+
 
