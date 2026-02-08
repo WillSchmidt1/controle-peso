@@ -10,17 +10,39 @@
 
 <style>
 body { background:#121212; color:white; }
-.card { background:#1e1e1e; border:none; border-radius:20px; }
-.form-control, .form-select, textarea {
-background:#2c2c2c !important;
-color:white !important;
-border:none !important;
+
+.card {
+    background:#1e1e1e;
+    border:none;
+    border-radius:20px;
 }
-canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
-.section-title { color:white; }
-.toast-container { position:fixed; top:20px; right:20px; z-index:9999; }
+
+.form-control, .form-select, textarea {
+    background:#2c2c2c !important;
+    color:white !important;
+    border:1px solid #444 !important;
+}
+
+.form-control::placeholder,
+textarea::placeholder {
+    color:#bbb !important;
+}
+
+label, h5 {
+    color:white !important;
+}
+
+canvas {
+    background:#1e1e1e;
+    border-radius:20px;
+    padding:10px;
+}
+
+.table td, .table th {
+    color:white;
+}
 </style>
-</head>
+
 <body>
 
 <div class="container py-4">
@@ -36,6 +58,11 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 
 <!-- DASHBOARD -->
 <div class="tab-pane fade show active" id="dashboard">
+<div class="card p-3 mb-3">
+<h5>Meta de Peso</h5>
+<input type="number" step="0.1" id="metaPeso" class="form-control mb-2" placeholder="Definir meta (kg)">
+<button class="btn btn-warning w-100" onclick="salvarMeta()">Salvar Meta</button>
+</div>
 
 <div class="card p-3 mb-3"><canvas id="graficoPeso"></canvas></div>
 <div class="card p-3 mb-3"><canvas id="graficoBebida"></canvas></div>
@@ -108,16 +135,22 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 let pesos = JSON.parse(localStorage.getItem("pesos")) || [];
 let atividades = JSON.parse(localStorage.getItem("atividades")) || [];
 let bebidas = JSON.parse(localStorage.getItem("bebidas")) || [];
+let meta = localStorage.getItem("metaPeso") || null;
 
 document.getElementById("pesoData").valueAsDate = new Date();
 document.getElementById("atvData").valueAsDate = new Date();
 document.getElementById("bebData").value = new Date().toISOString().slice(0,16);
 
+if(meta){
+document.getElementById("metaPeso").value = meta;
+}
+
 let chartPeso, chartBebida, chartAtividade;
 
-function mostrarToast(){
-let toast = new bootstrap.Toast(document.getElementById("toastSalvo"));
-toast.show();
+function salvarMeta(){
+meta = document.getElementById("metaPeso").value;
+localStorage.setItem("metaPeso", meta);
+atualizarGraficos();
 }
 
 function salvarPeso(){
@@ -146,7 +179,7 @@ function salvarBebida(){
 bebidas.push({
 data: document.getElementById("bebData").value,
 tipo: document.getElementById("bebTipo").value,
-qtd: document.getElementById("bebQtd").value
+qtd: document.getElementByById("bebQtd").value
 });
 localStorage.setItem("bebidas", JSON.stringify(bebidas));
 document.getElementById("bebQtd").value="";
@@ -157,8 +190,10 @@ atualizarTudo();
 function atualizarGraficos(){
 
 let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
-let labels = ordenado.map(p=> new Date(p.data).toLocaleDateString());
+let labels = ordenado.map(p=> p.data);
 let dados = ordenado.map(p=> p.peso);
+
+let linhaMeta = meta ? Array(labels.length).fill(parseFloat(meta)) : [];
 
 if(chartPeso) chartPeso.destroy();
 if(chartBebida) chartBebida.destroy();
@@ -166,37 +201,51 @@ if(chartAtividade) chartAtividade.destroy();
 
 chartPeso = new Chart(graficoPeso,{
 type:"line",
-data:{labels:labels,datasets:[
-{label:"Peso", data:dados}
-]}
+data:{
+labels:labels,
+datasets:[
+{label:"Peso", data:dados},
+meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
+]
+}
 });
 
 chartBebida = new Chart(graficoBebida,{
 type:"line",
-data:{labels:labels,datasets:[
+data:{
+labels:labels,
+datasets:[
 {label:"Peso", data:dados},
 {
-label:"Dias com bebida",
-data:ordenado.map(p=> bebidas.some(b=> new Date(b.data).toLocaleDateString()===new Date(p.data).toLocaleDateString())?p.peso:null),
+label:"Bebida",
+data:ordenado.map(p=>
+bebidas.some(b=> b.data.split("T")[0]===p.data)?p.peso:null),
 pointBackgroundColor:"red",
 showLine:false,
 pointRadius:6
+},
+meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
+]
 }
-]}
 });
 
 chartAtividade = new Chart(graficoAtividade,{
 type:"line",
-data:{labels:labels,datasets:[
+data:{
+labels:labels,
+datasets:[
 {label:"Peso", data:dados},
 {
-label:"Dias com atividade",
-data:ordenado.map(p=> atividades.some(a=> new Date(a.data).toLocaleDateString()===new Date(p.data).toLocaleDateString())?p.peso:null),
+label:"Atividade",
+data:ordenado.map(p=>
+atividades.some(a=> a.data===p.data)?p.peso:null),
 pointBackgroundColor:"lime",
 showLine:false,
 pointRadius:6
+},
+meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
+]
 }
-]}
 });
 
 }
@@ -206,51 +255,61 @@ function atualizarLista(){
 let lista = document.getElementById("listaRegistros");
 lista.innerHTML="";
 
-pesos.forEach(p=>{
-lista.innerHTML += `<tr>
-<td>${new Date(p.data).toLocaleDateString()}</td>
+pesos.forEach((p,i)=>{
+lista.innerHTML += `
+<tr>
+<td>${p.data}</td>
 <td>Peso</td>
 <td>${p.peso} kg</td>
+<td>
+<button class="btn btn-info btn-sm" onclick="editar('peso',${i})">Editar</button>
+<button class="btn btn-danger btn-sm" onclick="apagar('peso',${i})">Apagar</button>
+</td>
 </tr>`;
 });
 
-atividades.forEach(a=>{
-lista.innerHTML += `<tr>
-<td>${new Date(a.data).toLocaleDateString()}</td>
+atividades.forEach((a,i)=>{
+lista.innerHTML += `
+<tr>
+<td>${a.data}</td>
 <td>Atividade</td>
 <td>${a.desc}</td>
+<td>
+<button class="btn btn-info btn-sm" onclick="editar('atividade',${i})">Editar</button>
+<button class="btn btn-danger btn-sm" onclick="apagar('atividade',${i})">Apagar</button>
+</td>
 </tr>`;
 });
 
-bebidas.forEach(b=>{
-lista.innerHTML += `<tr>
-<td>${new Date(b.data).toLocaleDateString()}</td>
+bebidas.forEach((b,i)=>{
+lista.innerHTML += `
+<tr>
+<td>${b.data}</td>
 <td>Bebida</td>
-<td>${b.tipo} - ${b.qtd} L</td>
+<td>${b.tipo} ${b.qtd}L</td>
+<td>
+<button class="btn btn-info btn-sm" onclick="editar('bebida',${i})">Editar</button>
+<button class="btn btn-danger btn-sm" onclick="apagar('bebida',${i})">Apagar</button>
+</td>
 </tr>`;
 });
 
 }
 
-function baixarExcel(){
+function apagar(tipo,index){
+if(tipo==="peso"){pesos.splice(index,1);localStorage.setItem("pesos",JSON.stringify(pesos));}
+if(tipo==="atividade"){atividades.splice(index,1);localStorage.setItem("atividades",JSON.stringify(atividades));}
+if(tipo==="bebida"){bebidas.splice(index,1);localStorage.setItem("bebidas",JSON.stringify(bebidas));}
+atualizarTudo();
+}
 
-let csv = "Data,Tipo,Descricao\n";
+function editar(tipo,index){
+alert("Edição simples: exclua e registre novamente.\nPróxima versão podemos criar modal premium.");
+}
 
-pesos.forEach(p=>{
-csv += `${p.data},Peso,${p.peso} kg\n`;
-});
-atividades.forEach(a=>{
-csv += `${a.data},Atividade,${a.desc}\n`;
-});
-bebidas.forEach(b=>{
-csv += `${b.data},Bebida,${b.tipo} ${b.qtd}L\n`;
-});
-
-let blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-let link = document.createElement("a");
-link.href = URL.createObjectURL(blob);
-link.download = "registros_controle.csv";
-link.click();
+function mostrarToast(){
+let toast = new bootstrap.Toast(document.getElementById("toastSalvo"));
+toast.show();
 }
 
 function atualizarTudo(){
@@ -262,5 +321,7 @@ atualizarTudo();
 
 </script>
 
+
 </body>
 </html>
+
