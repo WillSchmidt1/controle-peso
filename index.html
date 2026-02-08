@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Peso</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial; margin: 20px; }
+input, select, button, textarea { width: 100%; margin: 5px 0; padding: 8px; }
+.card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 10px; }
+canvas { margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h2>Meta de Peso (kg)</h2>
+<input type="number" id="metaPeso" step="0.1">
+<button onclick="salvarMeta()">Salvar Meta</button>
+
+<div class="card">
+<h3>Registrar Peso</h3>
+<input type="number" id="pesoInput" step="0.1" placeholder="Peso (kg)">
+<button onclick="salvarPeso()">Salvar Peso</button>
+</div>
+
+<div class="card">
+<h3>Registrar Refeição</h3>
+<input type="date" id="refData">
+<input type="time" id="refHora">
+<select id="refTipo">
+<option>Café</option>
+<option>Almoço</option>
+<option>Jantar</option>
+<option>Lanche pela manhã</option>
+<option>Lanche a tarde</option>
+<option>Lanche a noite</option>
+</select>
+<textarea id="refDescricao" placeholder="O que você comeu"></textarea>
+<button onclick="salvarRefeicao()">Salvar Refeição</button>
+</div>
+
+<div class="card">
+<h3>Registrar Atividade Física</h3>
+<input type="date" id="atvData">
+<textarea id="atvDescricao" placeholder="Descrição da atividade"></textarea>
+<button onclick="salvarAtividade()">Salvar Atividade</button>
+</div>
+
+<div class="card">
+<h3>Registrar Bebida Alcoólica</h3>
+<input type="date" id="bebData">
+<input type="time" id="bebHora">
+<input type="number" id="bebQtd" step="0.01" placeholder="Quantidade (litros)">
+<select id="bebTipo">
+<option>Cerveja</option>
+<option>Vinho</option>
+<option>Whisky</option>
+</select>
+<button onclick="salvarBebida()">Salvar Bebida</button>
+</div>
+
+<h2>Gráficos</h2>
+<canvas id="grafico1"></canvas>
+<canvas id="grafico2"></canvas>
+<canvas id="grafico3"></canvas>
+<canvas id="grafico4"></canvas>
+
+<script>
+let pesos = JSON.parse(localStorage.getItem("pesos")) || [];
+let refeicoes = JSON.parse(localStorage.getItem("refeicoes")) || [];
+let atividades = JSON.parse(localStorage.getItem("atividades")) || [];
+let bebidas = JSON.parse(localStorage.getItem("bebidas")) || [];
+let meta = localStorage.getItem("meta") || null;
+
+document.getElementById("refData").valueAsDate = new Date();
+document.getElementById("refHora").value = new Date().toTimeString().slice(0,5);
+document.getElementById("atvData").valueAsDate = new Date();
+document.getElementById("bebData").valueAsDate = new Date();
+document.getElementById("bebHora").value = new Date().toTimeString().slice(0,5);
+if(meta) document.getElementById("metaPeso").value = meta;
+
+function salvarMeta(){
+    meta = document.getElementById("metaPeso").value;
+    localStorage.setItem("meta", meta);
+    atualizarGraficos();
+}
+
+function salvarPeso(){
+    let peso = document.getElementById("pesoInput").value;
+    let agora = new Date();
+    pesos.push({peso: parseFloat(peso), data: agora.toISOString()});
+    localStorage.setItem("pesos", JSON.stringify(pesos));
+    atualizarGraficos();
+}
+
+function salvarRefeicao(){
+    refeicoes.push({
+        data: document.getElementById("refData").value,
+        hora: document.getElementById("refHora").value,
+        tipo: document.getElementById("refTipo").value,
+        descricao: document.getElementById("refDescricao").value
+    });
+    localStorage.setItem("refeicoes", JSON.stringify(refeicoes));
+}
+
+function salvarAtividade(){
+    atividades.push({
+        data: document.getElementById("atvData").value,
+        descricao: document.getElementById("atvDescricao").value
+    });
+    localStorage.setItem("atividades", JSON.stringify(atividades));
+    atualizarGraficos();
+}
+
+function salvarBebida(){
+    bebidas.push({
+        data: document.getElementById("bebData").value,
+        hora: document.getElementById("bebHora").value,
+        quantidade: parseFloat(document.getElementById("bebQtd").value),
+        tipo: document.getElementById("bebTipo").value
+    });
+    localStorage.setItem("bebidas", JSON.stringify(bebidas));
+    atualizarGraficos();
+}
+
+function atualizarGraficos(){
+    let datas = pesos.map(p=>new Date(p.data).toLocaleDateString());
+    let valores = pesos.map(p=>p.peso);
+
+    let linhaMeta = meta ? Array(valores.length).fill(meta) : [];
+
+    new Chart(document.getElementById("grafico1"), {
+        type:"line",
+        data:{ labels:datas,
+        datasets:[
+            {label:"Peso", data:valores},
+            {label:"Meta", data:linhaMeta}
+        ]}
+    });
+
+    let datasBeb = bebidas.map(b=>b.data);
+    let pesosBeb = pesos.filter(p=>datasBeb.includes(new Date(p.data).toISOString().split('T')[0])).map(p=>p.peso);
+
+    new Chart(document.getElementById("grafico2"), {
+        type:"line",
+        data:{ labels:datasBeb,
+        datasets:[
+            {label:"Peso em dias com bebida", data:pesosBeb}
+        ]}
+    });
+
+    let datasAtv = atividades.map(a=>a.data);
+    let pesosAtv = pesos.filter(p=>datasAtv.includes(new Date(p.data).toISOString().split('T')[0])).map(p=>p.peso);
+
+    new Chart(document.getElementById("grafico3"), {
+        type:"line",
+        data:{ labels:datasAtv,
+        datasets:[
+            {label:"Peso em dias com atividade", data:pesosAtv}
+        ]}
+    });
+
+    new Chart(document.getElementById("grafico4"), {
+        type:"line",
+        data:{ labels:datas,
+        datasets:[
+            {label:"Peso", data:valores},
+            {label:"Meta", data:linhaMeta}
+        ]}
+    });
+}
+
+atualizarGraficos();
+</script>
+</body>
+</html>
