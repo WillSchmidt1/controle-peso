@@ -11,12 +11,18 @@
 <style>
 body { background:#121212; color:white; }
 .card { background:#1e1e1e; border:none; border-radius:20px; }
-.form-control, .form-select { background:#2c2c2c; color:white; border:none; }
-canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
+.form-control, .form-select, textarea {
+    background:#2c2c2c !important;
+    color:white !important;
+    border:none !important;
+}
+.form-control::placeholder, textarea::placeholder { color:#aaa; }
 .nav-tabs .nav-link { color:#aaa; }
 .nav-tabs .nav-link.active { background:#1e1e1e; color:#fff; border:none; }
-.metric-box { text-align:center; }
-.metric-number { font-size:24px; font-weight:bold; }
+.table { color:white; }
+.btn-warning { color:black; }
+canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
+.metric-number { font-size:22px; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -25,61 +31,64 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 
 <h2 class="text-center mb-4">🏋️ Controle Premium</h2>
 
+<ul class="nav nav-tabs mb-4">
+<li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dashboard">Dashboard</button></li>
+<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cadastro">Cadastro</button></li>
+<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registros">Registros</button></li>
+</ul>
+
+<div class="tab-content">
+
 <!-- DASHBOARD -->
-<div class="row mb-4">
-<div class="col-4 metric-box">
+<div class="tab-pane fade show active" id="dashboard">
+
+<div class="row text-center mb-4">
+<div class="col-4">
 <div>Último Peso</div>
 <div id="ultimoPeso" class="metric-number">-</div>
 </div>
-<div class="col-4 metric-box">
+<div class="col-4">
 <div>Variação</div>
 <div id="variacaoPeso" class="metric-number">-</div>
 </div>
-<div class="col-4 metric-box">
+<div class="col-4">
 <div>Meta</div>
 <div id="metaDisplay" class="metric-number">-</div>
 </div>
 </div>
 
-<div class="card p-3 mb-4">
-<h5>Meta de Peso (kg)</h5>
-<div class="input-group">
-<input type="number" id="metaPeso" step="0.1" class="form-control">
-<button class="btn btn-success" onclick="salvarMeta()">Salvar</button>
-</div>
-</div>
-
-<ul class="nav nav-tabs mb-3">
-<li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#peso">Peso</button></li>
-<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#atividade">Atividade</button></li>
-<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#bebida">Bebida</button></li>
-</ul>
-
-<div class="tab-content">
-
-<!-- PESO -->
-<div class="tab-pane fade show active" id="peso">
 <div class="card p-3 mb-3">
+<input type="number" id="metaPeso" step="0.1" class="form-control mb-2" placeholder="Meta (kg)">
+<button class="btn btn-success w-100" onclick="salvarMeta()">Salvar Meta</button>
+</div>
+
+<div class="card p-3 mb-3"><canvas id="graficoPeso"></canvas></div>
+<div class="card p-3 mb-3"><canvas id="graficoBebida"></canvas></div>
+<div class="card p-3 mb-3"><canvas id="graficoAtividade"></canvas></div>
+
+</div>
+
+<!-- CADASTRO -->
+<div class="tab-pane fade" id="cadastro">
+
+<div class="card p-3 mb-3">
+<h5>Peso</h5>
 <input type="date" id="pesoData" class="form-control mb-2">
-<input type="number" step="0.1" id="pesoInput" class="form-control mb-2" placeholder="Peso (kg)">
-<button class="btn btn-success w-100" onclick="salvarPeso()">Salvar Peso</button>
-</div>
+<input type="number" id="pesoValor" step="0.1" class="form-control mb-2" placeholder="Peso (kg)">
+<button class="btn btn-success w-100" onclick="salvarPeso()">Salvar</button>
 </div>
 
-<!-- ATIVIDADE -->
-<div class="tab-pane fade" id="atividade">
 <div class="card p-3 mb-3">
+<h5>Atividade Física</h5>
 <input type="date" id="atvData" class="form-control mb-2">
-<textarea id="atvDescricao" class="form-control mb-2" placeholder="Descrição"></textarea>
+<textarea id="atvDesc" class="form-control mb-2" placeholder="Descrição"></textarea>
 <button class="btn btn-success w-100" onclick="salvarAtividade()">Salvar</button>
 </div>
-</div>
 
-<!-- BEBIDA -->
-<div class="tab-pane fade" id="bebida">
 <div class="card p-3 mb-3">
-<input type="datetime-local" id="bebDataHora" class="form-control mb-2">
-<input type="number" step="0.01" id="bebQtd" class="form-control mb-2" placeholder="Quantidade (L)">
+<h5>Bebida Alcoólica</h5>
+<input type="datetime-local" id="bebData" class="form-control mb-2">
+<input type="number" id="bebQtd" step="0.01" class="form-control mb-2" placeholder="Quantidade (L)">
 <select id="bebTipo" class="form-select mb-2">
 <option>Cerveja</option>
 <option>Vinho</option>
@@ -87,17 +96,23 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 </select>
 <button class="btn btn-success w-100" onclick="salvarBebida()">Salvar</button>
 </div>
+
+</div>
+
+<!-- REGISTROS -->
+<div class="tab-pane fade" id="registros">
+
+<div class="card p-3 mb-3">
+<h5>Histórico de Pesos</h5>
+<table class="table">
+<thead><tr><th>Data</th><th>Peso</th><th>Ação</th></tr></thead>
+<tbody id="listaPesos"></tbody>
+</table>
 </div>
 
 </div>
 
-<hr class="my-4">
-
-<div class="card p-3 mb-4"><canvas id="grafico1"></canvas></div>
-<div class="card p-3 mb-4"><canvas id="grafico2"></canvas></div>
-<div class="card p-3 mb-4"><canvas id="grafico3"></canvas></div>
-<div class="card p-3"><canvas id="grafico4"></canvas></div>
-
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -107,11 +122,11 @@ canvas { background:#1e1e1e; border-radius:20px; padding:10px; }
 let pesos = JSON.parse(localStorage.getItem("pesos")) || [];
 let atividades = JSON.parse(localStorage.getItem("atividades")) || [];
 let bebidas = JSON.parse(localStorage.getItem("bebidas")) || [];
-let meta = localStorage.getItem("meta") || null;
+let meta = localStorage.getItem("meta");
 
 document.getElementById("pesoData").valueAsDate = new Date();
 document.getElementById("atvData").valueAsDate = new Date();
-document.getElementById("bebDataHora").value = new Date().toISOString().slice(0,16);
+document.getElementById("bebData").value = new Date().toISOString().slice(0,16);
 if(meta) document.getElementById("metaPeso").value = meta;
 
 function salvarMeta(){
@@ -122,93 +137,89 @@ atualizarTudo();
 
 function salvarPeso(){
 pesos.push({
-peso: parseFloat(document.getElementById("pesoInput").value),
-data: document.getElementById("pesoData").value
+data: document.getElementById("pesoData").value,
+peso: parseFloat(document.getElementById("pesoValor").value)
 });
 localStorage.setItem("pesos", JSON.stringify(pesos));
 atualizarTudo();
 }
 
 function salvarAtividade(){
-atividades.push({data: document.getElementById("atvData").value});
+atividades.push({
+data: document.getElementById("atvData").value,
+desc: document.getElementById("atvDesc").value
+});
 localStorage.setItem("atividades", JSON.stringify(atividades));
-atualizarTudo();
 }
 
 function salvarBebida(){
-bebidas.push({data: document.getElementById("bebDataHora").value});
+bebidas.push({
+data: document.getElementById("bebData").value,
+tipo: document.getElementById("bebTipo").value,
+qtd: document.getElementById("bebQtd").value
+});
 localStorage.setItem("bebidas", JSON.stringify(bebidas));
 atualizarTudo();
 }
 
+function editarPeso(index){
+let novoPeso = prompt("Editar peso:", pesos[index].peso);
+if(novoPeso){
+pesos[index].peso = parseFloat(novoPeso);
+localStorage.setItem("pesos", JSON.stringify(pesos));
+atualizarTudo();
+}
+}
+
+function atualizarLista(){
+let lista = document.getElementById("listaPesos");
+lista.innerHTML="";
+pesos.sort((a,b)=> new Date(a.data)-new Date(b.data));
+pesos.forEach((p,i)=>{
+lista.innerHTML += `
+<tr>
+<td>${new Date(p.data).toLocaleDateString()}</td>
+<td>${p.peso} kg</td>
+<td><button class="btn btn-warning btn-sm" onclick="editarPeso(${i})">Editar</button></td>
+</tr>`;
+});
+}
+
+function atualizarGraficos(){
+
+let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
+let labels = ordenado.map(p=> new Date(p.data+"T00:00").toLocaleDateString());
+let dados = ordenado.map(p=> p.peso);
+let linhaMeta = meta ? Array(dados.length).fill(meta) : [];
+
+new Chart(document.getElementById("graficoPeso"),{
+type:"line",
+data:{labels:labels,datasets:[
+{label:"Peso", data:dados},
+{label:"Meta", data:linhaMeta}
+]}
+});
+
+}
+
 function atualizarTudo(){
 
-if(pesos.length > 0){
-let ultimo = pesos[pesos.length-1].peso;
-document.getElementById("ultimoPeso").innerText = ultimo + " kg";
+if(pesos.length){
+let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
+let ultimo = ordenado[ordenado.length-1].peso;
+document.getElementById("ultimoPeso").innerText = ultimo+" kg";
 
-if(pesos.length > 1){
-let variacao = ultimo - pesos[pesos.length-2].peso;
-document.getElementById("variacaoPeso").innerText = variacao.toFixed(1) + " kg";
+if(ordenado.length>1){
+let variacao = ultimo - ordenado[ordenado.length-2].peso;
+document.getElementById("variacaoPeso").innerText = variacao.toFixed(1)+" kg";
 }
 }
 
-document.getElementById("metaDisplay").innerText = meta ? meta + " kg" : "-";
+document.getElementById("metaDisplay").innerText = meta ? meta+" kg" : "-";
 
-let datas = pesos.map(p=>p.data);
-let valores = pesos.map(p=>p.peso);
-let linhaMeta = meta ? Array(valores.length).fill(meta) : [];
-
-document.querySelectorAll("canvas").forEach(c=>c.remove());
-
-document.querySelectorAll(".card canvas").forEach((c,i)=>{
-});
-
-["grafico1","grafico2","grafico3","grafico4"].forEach(id=>{
-let newCanvas = document.createElement("canvas");
-newCanvas.id=id;
-document.querySelectorAll(".card")[4 + ["grafico1","grafico2","grafico3","grafico4"].indexOf(id)]
-.appendChild(newCanvas);
-});
-
-new Chart(document.getElementById("grafico1"),{
-type:"line",
-data:{labels:datas,datasets:[
-{label:"Peso", data:valores},
-{label:"Meta", data:linhaMeta}
-]}
-});
-
-new Chart(document.getElementById("grafico2"),{
-type:"scatter",
-data:{datasets:[
-{label:"Peso", data:pesos.map(p=>({x:p.data,y:p.peso}))},
-{label:"Dias com bebida", data:bebidas.map(b=>{
-let p = pesos.find(p=>p.data===b.data.split("T")[0]);
-return p?{x:p.data,y:p.peso}:null;
-}).filter(x=>x)}
-]}
-});
-
-new Chart(document.getElementById("grafico3"),{
-type:"scatter",
-data:{datasets:[
-{label:"Peso", data:pesos.map(p=>({x:p.data,y:p.peso}))},
-{label:"Dias com atividade", data:atividades.map(a=>{
-let p = pesos.find(p=>p.data===a.data);
-return p?{x:p.data,y:p.peso}:null;
-}).filter(x=>x)}
-]}
-});
-
-new Chart(document.getElementById("grafico4"),{
-type:"line",
-data:{labels:datas,datasets:[
-{label:"Peso", data:valores},
-{label:"Meta", data:linhaMeta}
-]}
-});
-
+document.getElementById("graficoPeso").replaceWith(document.getElementById("graficoPeso").cloneNode());
+atualizarGraficos();
+atualizarLista();
 }
 
 atualizarTudo();
