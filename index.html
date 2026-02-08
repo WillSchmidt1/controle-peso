@@ -83,13 +83,17 @@ canvas {
 <div class="card p-3 mb-3">
 <h5 class="section-title">Atividade Física</h5>
 <input type="date" id="atvData" class="form-control mb-2">
-<textarea id="atvDesc" class="form-control mb-2" placeholder="Descrição"></textarea>
+<select id="atvTipo" class="form-select mb-2">
+<option>Academia</option>
+<option>Corrida</option>
+<option>Caminhada</option>
+</select>
 <button class="btn btn-success w-100" onclick="salvarAtividade()">Salvar</button>
 </div>
 
 <div class="card p-3 mb-3">
 <h5 class="section-title">Bebida Alcoólica</h5>
-<input type="datetime-local" id="bebData" class="form-control mb-2">
+<input type="date" id="bebData" class="form-control mb-2">
 <input type="number" id="bebQtd" step="0.01" class="form-control mb-2" placeholder="Quantidade (L)">
 <select id="bebTipo" class="form-select mb-2">
 <option>Cerveja</option>
@@ -167,10 +171,10 @@ atualizarTudo();
 function salvarAtividade(){
 atividades.push({
 data: document.getElementById("atvData").value,
-desc: document.getElementById("atvDesc").value
+desc: document.getElementById("atvTipo").value
 });
 localStorage.setItem("atividades", JSON.stringify(atividades));
-document.getElementById("atvDesc").value="";
+document.getElementById("atvTipo").value="";
 mostrarToast();
 atualizarTudo();
 }
@@ -327,6 +331,7 @@ atualizarTudo();
 
 </body>
 </html>
+
 
 
 
