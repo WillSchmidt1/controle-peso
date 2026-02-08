@@ -193,62 +193,88 @@ atualizarTudo();
 
 function atualizarGraficos(){
 
-let ordenado = [...pesos].sort((a,b)=> new Date(a.data)-new Date(b.data));
-let labels = ordenado.map(p=> p.data);
-let dados = ordenado.map(p=> p.peso);
+// 1️⃣ Criar conjunto com TODAS as datas (peso + bebida + atividade)
+let datasSet = new Set();
 
-let linhaMeta = meta ? Array(labels.length).fill(parseFloat(meta)) : [];
+pesos.forEach(p => datasSet.add(p.data));
+bebidas.forEach(b => datasSet.add(b.data));
+atividades.forEach(a => datasSet.add(a.data));
 
+let todasDatas = Array.from(datasSet).sort((a,b)=> new Date(a) - new Date(b));
+
+// 2️⃣ Alinhar pesos às datas
+let dadosPeso = todasDatas.map(data=>{
+let registro = pesos.find(p => p.data === data);
+return registro ? registro.peso : null;
+});
+
+// 3️⃣ Marcar dias com bebida (independente de peso)
+let dadosBebida = todasDatas.map((data,i)=>{
+let temBebida = bebidas.some(b => b.data === data);
+return temBebida ? dadosPeso[i] : null;
+});
+
+// 4️⃣ Marcar dias com atividade
+let dadosAtividade = todasDatas.map((data,i)=>{
+let temAtividade = atividades.some(a => a.data === data);
+return temAtividade ? dadosPeso[i] : null;
+});
+
+// 5️⃣ Linha meta
+let linhaMeta = meta ? Array(todasDatas.length).fill(parseFloat(meta)) : [];
+
+// Destruir gráficos antigos
 if(chartPeso) chartPeso.destroy();
 if(chartBebida) chartBebida.destroy();
 if(chartAtividade) chartAtividade.destroy();
 
+
+// ===== GRÁFICO 1 =====
 chartPeso = new Chart(graficoPeso,{
 type:"line",
 data:{
-labels:labels,
+labels:todasDatas,
 datasets:[
-{label:"Peso", data:dados},
+{label:"Peso", data:dadosPeso},
 meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
 ]
 }
 });
 
+
+// ===== GRÁFICO 2 =====
 chartBebida = new Chart(graficoBebida,{
 type:"line",
 data:{
-labels:labels,
+labels:todasDatas,
 datasets:[
-{label:"Peso", data:dados},
+{label:"Peso", data:dadosPeso},
 {
-label:"Bebida",
-data:ordenado.map(p=>{
-return bebidas.some(b=>{
-return b.data.split("T")[0] === p.data;
-}) ? p.peso : null;
-}),
+label:"Dias com Bebida",
+data:dadosBebida,
 pointBackgroundColor:"red",
-showLine:false,
-pointRadius:6
+pointRadius:6,
+showLine:false
 },
 meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
 ]
 }
 });
 
+
+// ===== GRÁFICO 3 =====
 chartAtividade = new Chart(graficoAtividade,{
 type:"line",
 data:{
-labels:labels,
+labels:todasDatas,
 datasets:[
-{label:"Peso", data:dados},
+{label:"Peso", data:dadosPeso},
 {
-label:"Atividade",
-data:ordenado.map(p=>
-atividades.some(a=> a.data===p.data)?p.peso:null),
+label:"Dias com Atividade",
+data:dadosAtividade,
 pointBackgroundColor:"lime",
-showLine:false,
-pointRadius:6
+pointRadius:6,
+showLine:false
 },
 meta ? {label:"Meta", data:linhaMeta, borderDash:[5,5]} : {}
 ]
@@ -331,6 +357,7 @@ atualizarTudo();
 
 </body>
 </html>
+
 
 
 
